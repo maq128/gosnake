@@ -1,0 +1,8 @@
+{
+  "app_name": "GoSnake",
+  "icon_path_darwin": "src/gosnake/resources/icon.icns",
+  "icon_path_linux": "src/gosnake/resources/icon.png",
+  "icon_path_windows": "src/gosnake/resources/icon.ico",
+  "input_path": "src/gosnake",
+  "resources_path": "resources"
+}
