@@ -14,14 +14,14 @@ import (
 )
 
 // Constants
-const htmlAbout = `Welcome on <b>Astilectron</b> demo!<br>
+const htmlAbout = `Welcome on <b>GoSnake</b> !<br>
 This is using the bootstrap and the bundler.`
 
 // Vars
 var (
 	AppName string
 	BuiltAt string
-	debug   = flag.Bool("d", false, "enables the debug mode")
+	debug   = flag.Bool("d", true, "enables the debug mode")
 	w       *astilectron.Window
 )
 
@@ -32,7 +32,7 @@ func main() {
 
 	// Run bootstrap
 	astilog.Debugf("Running app built at %s", BuiltAt)
-	if err := bootstrap.Run(bootstrap.Options{
+	options := bootstrap.Options{
 		Asset:    Asset,
 		AssetDir: AssetDir,
 		AstilectronOptions: astilectron.Options{
@@ -43,26 +43,25 @@ func main() {
 		Debug: *debug,
 		MenuOptions: []*astilectron.MenuItemOptions{{
 			Label: astilectron.PtrStr("File"),
-			SubMenu: []*astilectron.MenuItemOptions{
-				{
-					Label: astilectron.PtrStr("About"),
-					OnClick: func(e astilectron.Event) (deleteListener bool) {
-						if err := bootstrap.SendMessage(w, "about", htmlAbout, func(m *bootstrap.MessageIn) {
-							// Unmarshal payload
-							var s string
-							if err := json.Unmarshal(m.Payload, &s); err != nil {
-								astilog.Error(errors.Wrap(err, "unmarshaling payload failed"))
-								return
-							}
-							astilog.Infof("About modal has been displayed and payload is %s!", s)
-						}); err != nil {
-							astilog.Error(errors.Wrap(err, "sending about event failed"))
+			SubMenu: []*astilectron.MenuItemOptions{{
+				Label: astilectron.PtrStr("About"),
+				OnClick: func(e astilectron.Event) (deleteListener bool) {
+					if err := bootstrap.SendMessage(w, "about", htmlAbout, func(m *bootstrap.MessageIn) {
+						// Unmarshal payload
+						var s string
+						if err := json.Unmarshal(m.Payload, &s); err != nil {
+							astilog.Error(errors.Wrap(err, "unmarshaling payload failed"))
+							return
 						}
-						return
-					},
+						astilog.Infof("About modal has been displayed and payload is %s!", s)
+					}); err != nil {
+						astilog.Error(errors.Wrap(err, "sending about event failed"))
+					}
+					return
 				},
-				{Role: astilectron.MenuItemRoleClose},
-			},
+			}, {
+				Role: astilectron.MenuItemRoleClose,
+			}},
 		}},
 		OnWait: func(_ *astilectron.Astilectron, ws []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 			w = ws[0]
@@ -85,7 +84,8 @@ func main() {
 				Width:           astilectron.PtrInt(700),
 			},
 		}},
-	}); err != nil {
+	}
+	if err := bootstrap.Run(options); err != nil {
 		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
 	}
 }
