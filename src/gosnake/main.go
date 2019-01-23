@@ -19,9 +19,9 @@ This is using the bootstrap and the bundler.`
 
 // Vars
 var (
-	AppName string
+	AppName string = "GoSnake"
 	BuiltAt string
-	debug   = flag.Bool("d", true, "enables the debug mode")
+	debug   = flag.Bool("d", false, "enables the debug mode")
 	w       *astilectron.Window
 )
 
@@ -94,6 +94,7 @@ type Resp struct {
 	Name string `json:"name"`
 	Path string `json:"path"`
 }
+
 func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload interface{}, err error) {
 	fmt.Println("handleMessages", m.Name)
 	payload = Resp{

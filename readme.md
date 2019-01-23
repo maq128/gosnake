@@ -2,20 +2,25 @@
 
 一个贪吃蛇游戏。
 
-# 安装依赖包和依赖工具：
+# 安装依赖包和依赖工具
 
 	go get -u github.com/asticode/go-astilectron-bootstrap
 	go get -u github.com/asticode/go-astilectron-bundler/...
 
-# 打包：
+# 打包
 
 **需把本项目根目录添加到 GOPATH 中**
 
 	astilectron-bundler -v
 
-# 直接运行：
+# 直接运行
 
-	go run src/gosnake/main.go src/gosnake/bind_windows_amd64.go
+	go run src/gosnake/main.go src/gosnake/bind_windows_amd64.go -d -v
+
+# 运行时的文件展开位置：
+
+	%UserProfile%\AppData\Roaming\GoSnake
+	%UserProfile%\AppData\Roaming\Electron
 
 # 参考资料
 
