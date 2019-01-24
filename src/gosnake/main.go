@@ -2,10 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"strconv"
 	"time"
-
-	"encoding/json"
 
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
@@ -13,16 +11,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Constants
-const htmlAbout = `Welcome on <b>GoSnake</b> !<br>
-This is using the bootstrap and the bundler.`
-
 // Vars
 var (
-	AppName string = "GoSnake"
-	BuiltAt string
-	debug   = flag.Bool("d", false, "enables the debug mode")
-	w       *astilectron.Window
+	debug     = flag.Bool("d", false, "enables the debug mode")
+	AppName   = "GoSnake"
+	chKeyCode = make(chan int, 10) // 传递用户操作按键给 engine
+	w         *astilectron.Window
 )
 
 func main() {
@@ -31,75 +25,100 @@ func main() {
 	astilog.FlagInit()
 
 	// Run bootstrap
-	astilog.Debugf("Running app built at %s", BuiltAt)
 	options := bootstrap.Options{
-		Asset:    Asset,
-		AssetDir: AssetDir,
+		Debug:         *debug,
+		Asset:         Asset,
+		AssetDir:      AssetDir,
+		RestoreAssets: RestoreAssets,
 		AstilectronOptions: astilectron.Options{
 			AppName:            AppName,
 			AppIconDarwinPath:  "resources/icon.icns",
 			AppIconDefaultPath: "resources/icon.png",
 		},
-		Debug: *debug,
 		MenuOptions: []*astilectron.MenuItemOptions{{
 			Label: astilectron.PtrStr("File"),
 			SubMenu: []*astilectron.MenuItemOptions{{
 				Label: astilectron.PtrStr("About"),
 				OnClick: func(e astilectron.Event) (deleteListener bool) {
-					if err := bootstrap.SendMessage(w, "about", htmlAbout, func(m *bootstrap.MessageIn) {
-						// Unmarshal payload
-						var s string
-						if err := json.Unmarshal(m.Payload, &s); err != nil {
-							astilog.Error(errors.Wrap(err, "unmarshaling payload failed"))
-							return
-						}
-						astilog.Infof("About modal has been displayed and payload is %s!", s)
-					}); err != nil {
-						astilog.Error(errors.Wrap(err, "sending about event failed"))
-					}
+					bootstrap.SendMessage(w, "about", nil)
 					return
 				},
 			}, {
 				Role: astilectron.MenuItemRoleClose,
 			}},
 		}},
-		OnWait: func(_ *astilectron.Astilectron, ws []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
-			w = ws[0]
-			go func() {
-				time.Sleep(5 * time.Second)
-				if err := bootstrap.SendMessage(w, "check.out.menu", "Don't forget to check out the menu!"); err != nil {
-					astilog.Error(errors.Wrap(err, "sending check.out.menu event failed"))
-				}
-			}()
-			return nil
-		},
-		RestoreAssets: RestoreAssets,
 		Windows: []*bootstrap.Window{{
 			Homepage:       "index.html",
 			MessageHandler: handleMessages,
 			Options: &astilectron.WindowOptions{
-				BackgroundColor: astilectron.PtrStr("#333"),
+				BackgroundColor: astilectron.PtrStr("#fff"),
 				Center:          astilectron.PtrBool(true),
-				Height:          astilectron.PtrInt(700),
-				Width:           astilectron.PtrInt(700),
+				Height:          astilectron.PtrInt(500),
+				Width:           astilectron.PtrInt(500),
 			},
 		}},
+		OnWait: func(_ *astilectron.Astilectron, ws []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
+			w = ws[0]
+			go engine()
+			return nil
+		},
 	}
 	if err := bootstrap.Run(options); err != nil {
 		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
 	}
 }
 
-type Resp struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-}
-
 func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload interface{}, err error) {
-	fmt.Println("handleMessages", m.Name)
-	payload = Resp{
-		Name: "hello",
-		Path: "world",
+	astilog.Debug("handleMessages:", m.Name, m.Payload)
+	switch m.Name {
+	case "keydown":
+		// 收到用户操作，转给 engine
+		kc, err := strconv.Atoi(string(m.Payload))
+		if err != nil {
+			break
+		}
+		chKeyCode <- kc
 	}
 	return
+}
+
+type Snake struct {
+	ID   int   `json:"id"`
+	Body []int `json:"body"`
+}
+
+type KickOffParams struct {
+	Food   int     `json:"food"`
+	Snakes []Snake `json:"snakes"`
+}
+
+type FrameParams struct {
+	Num     int `json:"num"`
+	KeyCode int `json:"keycode"`
+}
+
+func engine() {
+	// time.Sleep(time.Second)
+	bootstrap.SendMessage(w, "kick-off", KickOffParams{
+		Food: 43,
+		Snakes: []Snake{
+			Snake{
+				ID:   1,
+				Body: []int{41, 40},
+			},
+		},
+	})
+	ticker := time.NewTicker(time.Millisecond * 250)
+	keyCode := 0
+	for {
+		select {
+		case <-ticker.C:
+			bootstrap.SendMessage(w, "frame", FrameParams{
+				Num:     0,
+				KeyCode: keyCode,
+			})
+		case kc := <-chKeyCode:
+			keyCode = kc
+		}
+	}
 }

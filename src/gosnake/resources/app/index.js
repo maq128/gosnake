@@ -1,85 +1,67 @@
-let index = {
-    about: function(html) {
-        let c = document.createElement("div");
-        c.innerHTML = html;
-        asticode.modaler.setContent(c);
-        asticode.modaler.show();
-    },
-    addFolder(name, path) {
-        let div = document.createElement("div");
-        div.className = "dir";
-        div.onclick = function() { index.explore(path) };
-        div.innerHTML = `<i class="fa fa-folder"></i><span>` + name + `</span>`;
-        document.getElementById("dirs").appendChild(div)
-    },
-    init: function() {
-        // Init
-        asticode.loader.init();
-        asticode.modaler.init();
-        asticode.notifier.init();
+var food = 43,   // 食物的位置
+	box = document.getElementById('can').getContext('2d');
 
-        // Wait for astilectron to be ready
-        document.addEventListener('astilectron-ready', function() {
-            // Listen
-            index.listen();
+// 从0到399表示box里[0~19]*[0~19]的所有节点，每20px一个节点
+function draw(seat, color) {
+	box.fillStyle = color;
+	box.fillRect(seat % 20 * 20 + 1, ~~(seat / 20) * 20 + 1, 18, 18);
+	// 用color填充一个矩形，以前两个参数为x，y坐标，后两个参数为宽和高。
+}
 
-            // Explore default path
-            index.explore();
-        })
-    },
-    explore: function(path) {
-        // Create message
-        let message = {"name": "explore"};
-        if (typeof path !== "undefined") {
-            message.payload = path
-        }
+function Snake(s) {
+	this.snake = s;     // snake队列表示蛇身，初始节点存在但不显示
+	this.direction = 1; // 1表示向右，-1表示向左，20表示向下，-20表示向上
+	this.n = 0;         // 与下次移动的位置有关
+	this.alive = true;
+}
+Snake.prototype.frameForward = function(keyCode) {
+	if (!this.alive) return;
+	this.direction = this.snake[1] - this.snake[0] == (this.n = [-1, -20, 1, 20][keyCode - 37] || this.direction) ? this.direction : this.n;
+	this.snake.unshift(this.n = this.snake[0] + this.direction);
+	// 此时的n为下次蛇头出现的位置，n进入队列
+	if (this.snake.indexOf(this.n, 1) > 0 || this.n < 0 || this.n > 399 || this.direction == 1 && this.n % 20 == 0 || this.direction == -1 && this.n % 20 == 19) {
+		// if语句判断贪吃蛇是否撞到自己或者墙壁，碰到时返回，结束程序
+		this.alive = false;
+		return alert("GAME OVER!");
+	}
+	draw(this.n, "lime");   // 画出蛇头下次出现的位置
+	if (this.n == food) {   // 如果吃到食物时，产生一个蛇身以外的随机的点，不会去掉蛇尾
+		while (this.snake.indexOf(food = ~~(Math.random() * 400)) >= 0);
+		draw(food, "yellow");
+	} else {                //没有吃到食物时正常移动，蛇尾出队列
+		draw(this.snake.pop(), "black");
+	}
+}
 
-        // Send message
-        asticode.loader.show();
-        astilectron.sendMessage(message, function(message) {
-            // Init
-            asticode.loader.hide();
+document.addEventListener('astilectron-ready', function() {
+	// 把操作按键传给后端
+	document.addEventListener('keydown', (evt) => {
+		var kc = (evt || event).keyCode;
+		if (kc >= 37 && kc <= 40) {
+			astilectron.sendMessage({
+				name: 'keydown',
+				payload: kc,
+			});
+		}
+	});
 
-            // Check error
-            if (message.name === "error") {
-                asticode.notifier.error(message.payload);
-                return
-            }
+	var s;
 
-            // Process path
-            document.getElementById("path").innerHTML = message.payload.path;
+	astilectron.onMessage(function(message) {
+		console.log("onMessage:", JSON.stringify(message));
+		switch (message.name) {
+		case "about":
+			return;
 
-            // Process dirs
-            document.getElementById("dirs").innerHTML = ""
-            for (let i = 0; i < message.payload.dirs.length; i++) {
-                index.addFolder(message.payload.dirs[i].name, message.payload.dirs[i].path);
-            }
+		case "kick-off":
+			food = message.payload.food;
+			s = new Snake(message.payload.snakes[0].body);
+			return;
 
-            // Process files
-            document.getElementById("files_count").innerHTML = message.payload.files_count;
-            document.getElementById("files_size").innerHTML = message.payload.files_size;
-            document.getElementById("files").innerHTML = "";
-            if (typeof message.payload.files !== "undefined") {
-                document.getElementById("files_panel").style.display = "block";
-                let canvas = document.createElement("canvas");
-                document.getElementById("files").append(canvas);
-                new Chart(canvas, message.payload.files);
-            } else {
-                document.getElementById("files_panel").style.display = "none";
-            }
-        })
-    },
-    listen: function() {
-        astilectron.onMessage(function(message) {
-            switch (message.name) {
-                case "about":
-                    index.about(message.payload);
-                    return {payload: "payload"};
-                    break;
-                case "check.out.menu":
-                    asticode.notifier.info(message.payload);
-                    break;
-            }
-        });
-    }
-};
+		case "frame":
+			var kc = message.payload.keycode;
+			s.frameForward(kc);
+			return;
+		}
+	});
+});
