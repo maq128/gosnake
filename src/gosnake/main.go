@@ -16,7 +16,9 @@ var (
 	debug     = flag.Bool("d", false, "enables the debug mode")
 	AppName   = "GoSnake"
 	chKeyCode = make(chan int, 10) // 传递用户操作按键给 engine
-	w         *astilectron.Window
+	chMode    = make(chan int, 1)  // 传递 mode 信号给 engine
+	chExit    = make(chan int)     // 传递退出信号给 engine
+	mainWin   *astilectron.Window
 )
 
 func main() {
@@ -40,7 +42,7 @@ func main() {
 			SubMenu: []*astilectron.MenuItemOptions{{
 				Label: astilectron.PtrStr("About"),
 				OnClick: func(e astilectron.Event) (deleteListener bool) {
-					bootstrap.SendMessage(w, "about", nil)
+					bootstrap.SendMessage(mainWin, "about", nil)
 					return
 				},
 			}, {
@@ -58,21 +60,38 @@ func main() {
 			},
 		}},
 		OnWait: func(_ *astilectron.Astilectron, ws []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
-			w = ws[0]
+			mainWin = ws[0]
+			// Astilectron 已经 ready，启动 engine
 			go engine()
 			return nil
+		},
+		Adapter: func(a *astilectron.Astilectron) {
+			// Astilectron 已经结束，通知 engine 退出
+			a.On(astilectron.EventNameAppCrash, func(e astilectron.Event) (deleteListener bool) {
+				close(chExit)
+				return
+			})
 		},
 	}
 	if err := bootstrap.Run(options); err != nil {
 		astilog.Fatal(errors.Wrap(err, "running bootstrap failed"))
 	}
+	time.Sleep(time.Second)
 }
 
 func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload interface{}, err error) {
-	astilog.Debug("handleMessages:", m.Name, m.Payload)
+	// astilog.Debug("handleMessages:", m.Name, m.Payload)
 	switch m.Name {
+	case "start":
+		// 从 Astilectron 收到 start 通知，转给 engine
+		mode, err := strconv.Atoi(string(m.Payload))
+		if err != nil || mode < 1 || mode > 3 {
+			break
+		}
+		chMode <- mode
+
 	case "keydown":
-		// 收到用户操作，转给 engine
+		// 从 Astilectron 收到用户按键操作，转给 engine
 		kc, err := strconv.Atoi(string(m.Payload))
 		if err != nil {
 			break
@@ -88,37 +107,61 @@ type Snake struct {
 }
 
 type KickOffParams struct {
-	Food   int     `json:"food"`
+	Foods  []int   `json:"foods"`
 	Snakes []Snake `json:"snakes"`
+	MyID   int     `json:"myid"`
 }
 
 type FrameParams struct {
-	Num     int `json:"num"`
-	KeyCode int `json:"keycode"`
+	Num      int   `json:"num"`
+	KeyCodes []int `json:"keycodes"`
+	Foods    []int `json:"foods"`
 }
 
 func engine() {
-	// time.Sleep(time.Second)
-	bootstrap.SendMessage(w, "kick-off", KickOffParams{
-		Food: 43,
-		Snakes: []Snake{
-			Snake{
-				ID:   1,
-				Body: []int{41, 40},
-			},
-		},
-	})
+	mode := 0
 	ticker := time.NewTicker(time.Millisecond * 250)
-	keyCode := 0
+	var keyCodes []int
+	var myID int
+loop:
 	for {
 		select {
-		case <-ticker.C:
-			bootstrap.SendMessage(w, "frame", FrameParams{
-				Num:     0,
-				KeyCode: keyCode,
-			})
+		case m := <-chMode:
+			if m == 1 {
+				// 启动 1P 模式
+				mode = 1
+				myID = 0
+				keyCodes = make([]int, 1)
+				bootstrap.SendMessage(mainWin, "kick-off", KickOffParams{
+					Foods: []int{78, 208},
+					Snakes: []Snake{
+						Snake{
+							ID:   myID,
+							Body: []int{41, 40},
+						},
+					},
+					MyID: myID,
+				})
+			}
+
 		case kc := <-chKeyCode:
-			keyCode = kc
+			keyCodes[myID] = kc
+
+		case <-ticker.C:
+			if mode <= 0 {
+				break
+			}
+			bootstrap.SendMessage(mainWin, "frame", FrameParams{
+				Num:      0,
+				KeyCodes: keyCodes,
+				Foods:    []int{},
+			})
+			for id := 0; id < len(keyCodes); id++ {
+				keyCodes[id] = 0
+			}
+
+		case <-chExit:
+			break loop
 		}
 	}
 }

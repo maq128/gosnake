@@ -31,3 +31,5 @@
 [go-astilectron](https://github.com/asticode/go-astilectron)
 
 [20行代码的贪吃蛇](https://kongchenglc.github.io/blog/%E8%B4%AA%E5%90%83%E8%9B%8720170613/)
+
+[An absurdly small jQuery alternative for modern browsers](https://github.com/kenwheeler/cash)
