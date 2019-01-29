@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 
 	"gosnake-server/comm"
+	"gosnake/bindata"
 )
 
 // Vars
@@ -34,9 +35,9 @@ func main() {
 	// Run bootstrap
 	options := bootstrap.Options{
 		Debug:         *debug,
-		Asset:         Asset,
-		AssetDir:      AssetDir,
-		RestoreAssets: RestoreAssets,
+		Asset:         bindata.Asset,
+		AssetDir:      bindata.AssetDir,
+		RestoreAssets: bindata.RestoreAssets,
 		AstilectronOptions: astilectron.Options{
 			AppName:            AppName,
 			AppIconDarwinPath:  "resources/icon.icns",

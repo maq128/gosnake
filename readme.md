@@ -37,13 +37,15 @@
 
 	astilectron-bundler -v
 
-## 仅重新生成 bind_windows_amd64.go 文件（用于开发过程中修改了 H5 内容之后）
+## 仅重新生成 bindata 文件（用于开发过程中修改了 H5 内容之后）
 
 	astilectron-bundler bd -v
 
 ## 直接运行
 
-	go run src/gosnake/main.go src/gosnake/bind_windows_amd64.go -d -v
+**需把本项目根目录添加到 GOPATH 中**
+
+	go run src/gosnake/main.go -d -v
 
 ## 运行时的文件展开位置：
 
