@@ -1,0 +1,40 @@
+syntax = "proto3";
+package comm;
+
+option go_package = "gosnake-server/comm";
+
+enum Mode {
+	Mode_None = 0;
+	Mode_1P = 1;
+	Mode_2P = 2;
+	Mode_3P = 3;
+}
+
+enum KeyCode {
+	KeyCode_None = 0;
+	KeyCode_LEFT = -1;
+	KeyCode_UP = -20;
+	KeyCode_RIGHT = 1;
+	KeyCode_DOWN = 20;
+}
+
+message Up {
+	message UpJoin {
+		Mode mode = 1;
+	}
+
+	message UpOp {
+		KeyCode keycode = 1;
+	}
+
+	oneof m {
+		UpJoin join = 1;
+		UpOp op = 2;
+	}
+}
+
+message Down {
+	message KickOff {
+
+	}
+}

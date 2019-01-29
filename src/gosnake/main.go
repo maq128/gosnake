@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"flag"
+	"net"
 	"strconv"
 	"time"
 
 	"github.com/asticode/go-astilectron"
 	"github.com/asticode/go-astilectron-bootstrap"
 	"github.com/asticode/go-astilog"
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+
+	"gosnake-server/comm"
 )
 
 // Vars
@@ -123,6 +128,27 @@ func engine() {
 	ticker := time.NewTicker(time.Millisecond * 250)
 	var keyCodes []int
 	var myID int
+
+	// 与服务器的 UDP 通信
+	serverConn, err := net.Dial("udp", "127.0.0.1:6688")
+	if err != nil {
+		astilog.Fatal("udp setup:", err)
+	}
+	defer serverConn.Close()
+
+	// 专门接收服务器发来的 UDP
+	go func() {
+		for {
+			buffer := make([]byte, 1024)
+			n, err := bufio.NewReader(serverConn).Read(buffer)
+			if err != nil {
+				astilog.Info("udp read err:", err)
+				return
+			}
+			astilog.Info("udp read:", n, string(buffer[:n]))
+		}
+	}()
+
 loop:
 	for {
 		select {
@@ -142,6 +168,17 @@ loop:
 					},
 					MyID: myID,
 				})
+
+				up := &comm.Up{
+					M: &comm.Up_Join{
+						Join: &comm.Up_UpJoin{
+							Mode: 1,
+						},
+					},
+				}
+				out, _ := proto.Marshal(up)
+				n, err := serverConn.Write(out)
+				astilog.Info("udp join:", n, err)
 			}
 
 		case kc := <-chKeyCode:

@@ -31,8 +31,8 @@ Snake.prototype.frameForward = function(keyCode) {
 		this.gameOver = true;
 		$('#btn-1p').removeAttr('disabled')
 		box.font = "40px Arial";
-		box.strokeStyle = "red";
 		box.textAlign = "center";
+		box.strokeStyle = "red";
 		box.strokeText("GAME OVER", 200, 200);
 		return;
 	}
