@@ -30,6 +30,7 @@
 
 	go get -u github.com/asticode/go-astilectron-bootstrap
 	go get -u github.com/asticode/go-astilectron-bundler/...
+	go get -u github.com/xtaci/kcp-go
 
 ## 打包
 
@@ -60,6 +61,10 @@
 
 [An absurdly small jQuery alternative for modern browsers](https://github.com/kenwheeler/cash)
 
-[A UDP server and client in Go](https://ops.tips/blog/udp-client-and-server-in-go/)
+[Go socket编程实践: UDP服务器和客户端实现](https://colobu.com/2014/12/02/go-socket-programming-UDP/)
+
+[A Production-Grade Reliable-UDP Library for golang](https://github.com/xtaci/kcp-go)
 
 [Go support for Google's protocol buffers](https://github.com/golang/protobuf)
+
+[Language Guide (proto3)](https://developers.google.com/protocol-buffers/docs/proto3)

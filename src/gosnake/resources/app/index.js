@@ -75,7 +75,7 @@ document.addEventListener('astilectron-ready', function() {
 		}
 	});
 
-	var myid = 0;
+	var cid = 0; // my client id
 	var snakes = {};
 
 	astilectron.onMessage(function(message) {
@@ -92,14 +92,14 @@ document.addEventListener('astilectron-ready', function() {
 				foods.push(food);
 				draw(food, "yellow");
 			});
-			myid = message.payload.myid;
-			snakes[myid] = new Snake(message.payload.snakes[myid].body);
+			cid = message.payload.cid || 0;
+			snakes[cid] = new Snake(message.payload.snakes[cid].body);
 			return;
 
 		case "frame":
 			// 帧驱动
-			var kc = message.payload.keycodes[myid];
-			snakes[myid].frameForward(kc);
+			var kc = message.payload.keycodes[cid];
+			snakes[cid].frameForward(kc);
 			return;
 		}
 	});

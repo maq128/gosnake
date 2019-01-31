@@ -4,18 +4,18 @@ package comm;
 option go_package = "gosnake-server/comm";
 
 enum Mode {
-	Mode_None = 0;
-	Mode_1P = 1;
-	Mode_2P = 2;
-	Mode_3P = 3;
+	None = 0;
+	P1P = 1;
+	P2P = 2;
+	P3P = 3;
 }
 
 enum KeyCode {
-	KeyCode_None = 0;
-	KeyCode_LEFT = -1;
-	KeyCode_UP = -20;
-	KeyCode_RIGHT = 1;
-	KeyCode_DOWN = 20;
+	NO_KEY = 0;
+	LEFT = -1;
+	UP = -20;
+	RIGHT = 1;
+	DOWN = 20;
 }
 
 message Up {
@@ -34,7 +34,24 @@ message Up {
 }
 
 message Down {
-	message KickOff {
+	message Snake {
+		int32 cid = 1;
+		repeated int32 body = 2;
+	}
 
+	message DownKickOff {
+		int32 cid = 1;
+		repeated int32 foods = 2;
+		repeated Snake snakes = 3;
+	}
+
+	message DownFrame {
+		repeated int32 foods = 1;
+		repeated int32 keycodes = 2;
+	}
+
+	oneof m {
+		DownKickOff kickoff = 1;
+		DownFrame frame = 2;
 	}
 }
