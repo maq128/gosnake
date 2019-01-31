@@ -22,8 +22,8 @@ var (
 	debug     = flag.Bool("d", false, "enables the debug mode")
 	AppName   = "GoSnake"
 	chKeyCode = make(chan int32, 10) // 传递用户操作按键给 engine
-	chMode    = make(chan int, 1)    // 传递 mode 信号给 engine
-	chExit    = make(chan int)       // 传递退出信号给 engine
+	chMode    = make(chan int32, 1)  // 传递 mode 信号给 engine
+	chExit    = make(chan bool)      // 传递退出信号给 engine
 	mainWin   *astilectron.Window
 )
 
@@ -94,7 +94,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 		if err != nil || mode < 1 || mode > 3 {
 			break
 		}
-		chMode <- mode
+		chMode <- int32(mode)
 
 	case "keydown":
 		// 从 Astilectron 收到用户按键操作，转给 engine
@@ -113,7 +113,7 @@ type FrameParams struct {
 	Foods    []int   `json:"foods"`
 }
 
-// 专门接收服务器发来的 UDP，通过 chan 转发给 engine
+// 专门接收 server 发来的 UDP，通过 chan 转发给 engine
 func readUDP(conn net.Conn, chDown chan *comm.Down) {
 	defer conn.Close()
 
@@ -136,7 +136,7 @@ func readUDP(conn net.Conn, chDown chan *comm.Down) {
 }
 
 func engine() {
-	mode := 0
+	var mode int32
 	ticker := time.NewTicker(time.Millisecond * 250)
 	var keyCodes []int32
 	var myID int32
@@ -146,7 +146,7 @@ func engine() {
 loop:
 	for {
 		select {
-		case m := <-chMode:
+		case m := <-chMode: // 来自 Astilectron
 			// 重新建立连接
 			if serverConn != nil {
 				serverConn.Close()
@@ -163,7 +163,7 @@ loop:
 				up := &comm.Up{
 					M: &comm.Up_Join{
 						Join: &comm.Up_UpJoin{
-							Mode: comm.Mode_P1P,
+							Mode: m,
 						},
 					},
 				}
@@ -172,7 +172,24 @@ loop:
 				astilog.Debug("serverConn.Write: join:", n, err)
 			}
 
-		case down := <-chDown:
+		case kc := <-chKeyCode: // 来自 Astilectron
+			if serverConn == nil {
+				break
+			}
+			keyCodes[myID] = kc
+			// 提交操作按键给服务器
+			up := &comm.Up{
+				M: &comm.Up_Op{
+					Op: &comm.Up_UpOp{
+						Keycode: kc,
+					},
+				},
+			}
+			out, _ := proto.Marshal(up)
+			n, err := serverConn.Write(out)
+			astilog.Debug("serverConn.Write: op:", n, err)
+
+		case down := <-chDown: // 来自 server
 			switch cmd := down.M.(type) {
 			case *comm.Down_Kickoff:
 				astilog.Info("kickoff:", cmd.Kickoff)
@@ -185,23 +202,6 @@ loop:
 			case *comm.Down_Frame:
 				astilog.Info("frame:", cmd.Frame)
 			}
-
-		case kc := <-chKeyCode:
-			if serverConn == nil {
-				break
-			}
-			keyCodes[myID] = kc
-			// 提交操作按键给服务器
-			up := &comm.Up{
-				M: &comm.Up_Op{
-					Op: &comm.Up_UpOp{
-						Keycode: comm.KeyCode(kc),
-					},
-				},
-			}
-			out, _ := proto.Marshal(up)
-			n, err := serverConn.Write(out)
-			astilog.Debug("serverConn.Write: op:", n, err)
 
 		case <-ticker.C:
 			if mode <= 0 {

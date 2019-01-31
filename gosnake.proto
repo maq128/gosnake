@@ -3,28 +3,13 @@ package comm;
 
 option go_package = "gosnake-server/comm";
 
-enum Mode {
-	None = 0;
-	P1P = 1;
-	P2P = 2;
-	P3P = 3;
-}
-
-enum KeyCode {
-	NO_KEY = 0;
-	LEFT = -1;
-	UP = -20;
-	RIGHT = 1;
-	DOWN = 20;
-}
-
 message Up {
 	message UpJoin {
-		Mode mode = 1;
+		int32 mode = 1; // 1/2/3 - 1P/2P/3P
 	}
 
 	message UpOp {
-		KeyCode keycode = 1;
+		int32 keycode = 1; // 37/38/39/40 - Left/Up/Right/Down
 	}
 
 	oneof m {

@@ -35,13 +35,12 @@ func handleClientConn(conn net.Conn) {
 	for {
 		var buffer [512]byte
 
-		log.Println("conn.Read:")
+		// 接收并解析来自 client 的数据包
 		n, err := conn.Read(buffer[:])
 		if err != nil {
 			log.Println("conn.Read:", err)
 			return
 		}
-
 		log.Println("conn.Read:", n)
 
 		up := &comm.Up{}
@@ -50,20 +49,22 @@ func handleClientConn(conn net.Conn) {
 			log.Println("proto.Unmarshal:", err)
 			return
 		}
-
 		log.Println("proto.Unmarshal:", up)
+
 		switch cmd := up.M.(type) {
 		case *comm.Up_Join:
+			// 新开局，加入一个 room
 			log.Println("join:", cmd.Join.Mode)
-			room, cid = joinRoom(conn, int(cmd.Join.Mode))
+			room, cid = joinRoom(conn, cmd.Join.Mode)
 
 		case *comm.Up_Op:
+			// 把用户操作转发给 room
 			if room == nil {
 				break
 			}
 			room.chOp <- ClientKeyCode{
 				cid:     cid,
-				keycode: int32(cmd.Op.Keycode),
+				keycode: cmd.Op.Keycode,
 			}
 		}
 	}
@@ -75,9 +76,9 @@ type ClientKeyCode struct {
 }
 
 type Room struct {
-	id       int
-	mode     int        // 本房间的模式 1/2/3
-	num      int        // 本房间当前人数
+	id       int32
+	mode     int32      // 本房间的模式 1/2/3
+	num      int32      // 本房间当前人数
 	conns    []net.Conn // 客户端的通信连接
 	ticker   *time.Ticker
 	foods    []int32
@@ -97,7 +98,7 @@ func (room *Room) run() {
 			room.num++
 			room.conns[cid] = conn
 			room.snakes[cid] = &comm.Down_Snake{
-				Cid:  int32(cid),
+				Cid:  cid,
 				Body: []int32{41, 40}, // FIXME: 随机初始化
 			}
 			log.Println("new join:", room.id, cid)
@@ -130,16 +131,16 @@ func (room *Room) run() {
 	}
 }
 
-var roomID = 0
+var roomID int32
 var rooms = make([]*Room, 0)
 
-func joinRoom(conn net.Conn, mode int) (room *Room, cid int32) {
-	// FIXME: rooms 访问冲突
+func joinRoom(conn net.Conn, mode int32) (room *Room, cid int32) {
 	// 找到一个空闲的 room
+	// FIXME: rooms 访问冲突
 	for _, r := range rooms {
 		if r.mode == mode && r.num < mode {
 			room = r
-			cid = int32(room.num)
+			cid = room.num
 			break
 		}
 	}
