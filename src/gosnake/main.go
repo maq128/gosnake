@@ -61,8 +61,8 @@ func main() {
 			Options: &astilectron.WindowOptions{
 				BackgroundColor: astilectron.PtrStr("#fff"),
 				Center:          astilectron.PtrBool(true),
-				Height:          astilectron.PtrInt(500),
-				Width:           astilectron.PtrInt(500),
+				Height:          astilectron.PtrInt(600),
+				Width:           astilectron.PtrInt(600),
 			},
 		}},
 		OnWait: func(_ *astilectron.Astilectron, ws []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
@@ -107,12 +107,6 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 	return
 }
 
-type FrameParams struct {
-	Num      int     `json:"num"`
-	KeyCodes []int32 `json:"keycodes"`
-	Foods    []int   `json:"foods"`
-}
-
 // 专门接收 server 发来的 UDP，通过 chan 转发给 engine
 func readUDP(conn net.Conn, chDown chan *comm.Down) {
 	defer conn.Close()
@@ -136,10 +130,6 @@ func readUDP(conn net.Conn, chDown chan *comm.Down) {
 }
 
 func engine() {
-	var mode int32
-	ticker := time.NewTicker(time.Millisecond * 250)
-	var keyCodes []int32
-	var myID int32
 	var serverConn net.Conn
 	chDown := make(chan *comm.Down, 10)
 
@@ -176,7 +166,6 @@ loop:
 			if serverConn == nil {
 				break
 			}
-			keyCodes[myID] = kc
 			// 提交操作按键给服务器
 			up := &comm.Up{
 				M: &comm.Up_Op{
@@ -193,27 +182,15 @@ loop:
 			switch cmd := down.M.(type) {
 			case *comm.Down_Kickoff:
 				astilog.Info("kickoff:", cmd.Kickoff)
-				// 启动 1P 模式
-				mode = 1
-				myID = cmd.Kickoff.Cid
-				keyCodes = make([]int32, 1)
 				bootstrap.SendMessage(mainWin, "kick-off", cmd.Kickoff)
 
 			case *comm.Down_Frame:
 				astilog.Info("frame:", cmd.Frame)
-			}
+				bootstrap.SendMessage(mainWin, "frame", cmd.Frame)
 
-		case <-ticker.C:
-			if mode <= 0 {
-				break
-			}
-			bootstrap.SendMessage(mainWin, "frame", FrameParams{
-				Num:      0,
-				KeyCodes: keyCodes,
-				Foods:    []int{},
-			})
-			for id := 0; id < len(keyCodes); id++ {
-				keyCodes[id] = 0
+			case *comm.Down_Finish:
+				astilog.Info("finish:", cmd.Finish)
+				bootstrap.SendMessage(mainWin, "finish", cmd.Finish)
 			}
 
 		case <-chExit:

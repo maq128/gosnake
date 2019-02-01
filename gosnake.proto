@@ -20,8 +20,7 @@ message Up {
 
 message Down {
 	message Snake {
-		int32 cid = 1;
-		repeated int32 body = 2;
+		repeated int32 body = 1;
 	}
 
 	message DownKickOff {
@@ -35,8 +34,13 @@ message Down {
 		repeated int32 keycodes = 2;
 	}
 
+	message DownFinish {
+		int32 winer = 1;
+	}
+
 	oneof m {
 		DownKickOff kickoff = 1;
 		DownFrame frame = 2;
+		DownFinish finish = 3;
 	}
 }

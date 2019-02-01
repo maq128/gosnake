@@ -1,12 +1,13 @@
-// 从0到399表示box里[0~19]*[0~19]的所有节点，每20px一个节点
+var foods = [];
+var boxWidth = 20;  // 横向方块的个数
+var boxHeight = 20; // 纵向方块的个数
+var boxSize = 24;   // 方块的尺寸（像素）
+
 var box = document.getElementById('can').getContext('2d');
 function draw(seat, color) {
 	box.fillStyle = color;
-	box.fillRect(seat % 20 * 20 + 1, ~~(seat / 20) * 20 + 1, 18, 18);
-	// 用color填充一个矩形，以前两个参数为x，y坐标，后两个参数为宽和高。
+	box.fillRect(seat % boxWidth * boxSize + 1, ~~(seat / boxHeight) * boxSize + 1, boxSize-2, boxSize-2);
 }
-
-var foods = [];
 
 function Snake(body) {
 	this.snake = body;  // snake 队列表示蛇身
@@ -20,24 +21,24 @@ Snake.prototype.frameForward = function(keyCode) {
 	if (this.gameOver) return;
 
 	// 计算出蛇头的位置
-	var newDir = [-1, -20, 1, 20][keyCode - 37] || this.direction;
+	var newDir = [-1, -boxWidth, 1, boxWidth][keyCode - 37] || this.direction;
 	this.direction = (this.snake[1] - this.snake[0] == newDir) ? this.direction : newDir;
 	var head = this.snake[0] + this.direction;
-	this.snake.unshift(head);
 
 	// 判断是否撞到自己或者墙壁
-	if (this.snake.indexOf(head, 1) > 0 || head < 0 || head > 399 || this.direction == 1 && head % 20 == 0 || this.direction == -1 && head % 20 == 19) {
+	if (this.snake.indexOf(head) > 0 || head < 0 || head > 399 || this.direction == 1 && head % boxWidth == 0 || this.direction == -1 && head % boxWidth == boxWidth-1) {
 		// 结束！
 		this.gameOver = true;
-		$('#btn-1p').removeAttr('disabled')
-		box.font = "40px Arial";
-		box.textAlign = "center";
-		box.strokeStyle = "red";
-		box.strokeText("GAME OVER", 200, 200);
+
+		// 画残骸
+		this.snake.forEach(function(n) {
+			draw(n, 'darkgreen');
+		});
 		return;
 	}
 
 	// 画出蛇头
+	this.snake.unshift(head);
 	draw(head, "lime");
 
 	// 判断是否吃到食物
@@ -100,6 +101,20 @@ document.addEventListener('astilectron-ready', function() {
 			// 帧驱动
 			var kc = message.payload.keycodes[cid];
 			snakes[cid].frameForward(kc);
+			(message.payload.foods||[]).forEach(function(food) {
+				foods.push(food);
+				draw(food, "yellow");
+			});
+			return;
+
+		case "finish":
+			// 结束一局
+			$('#btn-1p').removeAttr('disabled')
+
+			box.font = "40px Arial";
+			box.textAlign = "center";
+			box.strokeStyle = "red";
+			box.strokeText("GAME OVER", boxWidth*boxSize/2, boxHeight*boxSize/2);
 			return;
 		}
 	});
