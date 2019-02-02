@@ -48,6 +48,8 @@
 
 	go run src/gosnake/main.go -d -v
 
+客户端运行时会通过域名 `gosnake.game` 找到服务器，所以需要在 hosts 文件中设置域名解析。
+
 ## 运行时的文件展开位置：
 
 	%UserProfile%\AppData\Roaming\GoSnake

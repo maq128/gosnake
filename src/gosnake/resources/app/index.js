@@ -64,14 +64,14 @@ Snake.prototype.frameForward = function(keyCode) {
 }
 
 document.addEventListener('astilectron-ready', function() {
-	$('#btn-1p')
+	$('button')
 		.removeAttr('disabled')
-		.on('click', function() {
-			$('#btn-1p').attr('disabled', true);
+		.on('click', function(evt) {
+			$('button').attr('disabled', true);
 			// 开始 1P 游戏
 			astilectron.sendMessage({
 				name: 'start',
-				payload: 1,
+				payload: $(evt.target).attr('data-mode') * 1,
 			});
 		});
 
@@ -131,7 +131,7 @@ document.addEventListener('astilectron-ready', function() {
 
 		case "finish":
 			// 结束一局
-			$('#btn-1p').removeAttr('disabled')
+			$('button').removeAttr('disabled')
 
 			canvas.font = "40px Arial";
 			canvas.textAlign = "center";

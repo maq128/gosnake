@@ -141,7 +141,7 @@ loop:
 			if serverConn != nil {
 				serverConn.Close()
 			}
-			conn, err := kcp.Dial("127.0.0.1:6688")
+			conn, err := kcp.Dial("gosnake.game:6688")
 			if err != nil {
 				astilog.Fatal("udp setup:", err)
 			}
