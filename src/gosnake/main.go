@@ -181,15 +181,15 @@ loop:
 		case down := <-chDown: // 来自 server
 			switch cmd := down.M.(type) {
 			case *comm.Down_Kickoff:
-				astilog.Info("kickoff:", cmd.Kickoff)
+				astilog.Debug("kickoff:", cmd.Kickoff)
 				bootstrap.SendMessage(mainWin, "kick-off", cmd.Kickoff)
 
 			case *comm.Down_Frame:
-				astilog.Info("frame:", cmd.Frame)
+				astilog.Debug("frame:", cmd.Frame)
 				bootstrap.SendMessage(mainWin, "frame", cmd.Frame)
 
 			case *comm.Down_Finish:
-				astilog.Info("finish:", cmd.Finish)
+				astilog.Debug("finish:", cmd.Finish)
 				bootstrap.SendMessage(mainWin, "finish", cmd.Finish)
 			}
 

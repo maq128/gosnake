@@ -25,8 +25,10 @@ message Down {
 
 	message DownKickOff {
 		int32 cid = 1;
-		repeated int32 foods = 2;
-		repeated Snake snakes = 3;
+		int32 width = 2;
+		int32 height = 3;
+		repeated int32 foods = 4;
+		repeated Snake snakes = 5;
 	}
 
 	message DownFrame {

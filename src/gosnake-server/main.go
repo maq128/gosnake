@@ -106,7 +106,7 @@ func (room *Room) run() {
 	}
 
 	// 初始化食物
-	foodNum := room.num + 2
+	foodNum := room.num + 5
 	for foodNum > 0 {
 		foodNum--
 		room.newFood()
@@ -118,6 +118,8 @@ func (room *Room) run() {
 			M: &comm.Down_Kickoff{
 				Kickoff: &comm.Down_DownKickOff{
 					Cid:    int32(cid),
+					Width:  room.width,
+					Height: room.height,
 					Foods:  room.foods,
 					Snakes: room.snakes,
 				},
@@ -337,11 +339,14 @@ func joinRoom(conn net.Conn, mode int32) (room *Room, cid int32) {
 			conns:    make([]net.Conn, mode),
 			snakes:   make([]*comm.Down_Snake, mode),
 			keycodes: make([]int32, mode),
-			ticker:   time.NewTicker(time.Millisecond * 250),
+			ticker:   time.NewTicker(time.Millisecond * 200),
 			chJoin:   make(chan net.Conn),
 			chOp:     make(chan ClientKeyCode),
 		}
 		switch mode {
+		case 1:
+			room.width = 20
+			room.height = 20
 		case 2:
 			room.width = 30
 			room.height = 30
