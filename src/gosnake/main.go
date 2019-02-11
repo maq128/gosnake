@@ -148,19 +148,17 @@ loop:
 			serverConn = conn
 			go readUDP(serverConn, chDown)
 
-			if m == 1 {
-				// 提交请求启动 1P 模式
-				up := &comm.Up{
-					M: &comm.Up_Join{
-						Join: &comm.Up_UpJoin{
-							Mode: m,
-						},
+			// 按指定的游戏模式请求启动
+			up := &comm.Up{
+				M: &comm.Up_Join{
+					Join: &comm.Up_UpJoin{
+						Mode: m,
 					},
-				}
-				out, _ := proto.Marshal(up)
-				n, err := serverConn.Write(out)
-				astilog.Debug("serverConn.Write: join:", n, err)
+				},
 			}
+			out, _ := proto.Marshal(up)
+			n, err := serverConn.Write(out)
+			astilog.Debug("serverConn.Write: join:", n, err)
 
 		case kc := <-chKeyCode: // 来自 Astilectron
 			if serverConn == nil {

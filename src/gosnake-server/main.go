@@ -94,6 +94,8 @@ type Room struct {
 func (room *Room) run() {
 	// 若人数不足，则等待新人加入
 	for room.num < room.mode {
+		log.Println("run: waiting for next", room.mode-room.num)
+
 		select {
 		case conn := <-room.chJoin:
 			cid := room.num
@@ -104,6 +106,8 @@ func (room *Room) run() {
 			}
 		}
 	}
+
+	log.Println("run: enough")
 
 	// 初始化食物
 	foodNum := room.num + 5
@@ -358,7 +362,7 @@ func joinRoom(conn net.Conn, mode int32) (room *Room, cid int32) {
 		cid = 0
 		rooms = append(rooms, room)
 
-		log.Println("joinRoom: new room:", room.id)
+		log.Println("joinRoom: new room:", room.id, mode)
 		go room.run()
 	}
 
