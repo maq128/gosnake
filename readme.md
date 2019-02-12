@@ -8,21 +8,39 @@
 
 - Up: join
 
+	申请开始一局游戏。可以指定单人、双人、三人模式。
+
 - Up: Op
+
+	上报按键操作。
 
 - Down: kick-off
 
+	开始一局。
+
 - Down: frame
+
+	帧驱动数据。
+
+- Down: finish
+
+	本局结束。
 
 ## 生成 protobuffer 代码
 
 	protoc --go_out=src gosnake.proto
 
+## 打包
+
+**需把本项目根目录添加到 GOPATH 中**
+
+	go build gosnake-server
+
 ## 直接运行
 
 **需把本项目根目录添加到 GOPATH 中**
 
-	go run src/gosnake-server/main.go
+	go run src/gosnake-server/main.go src/gosnake-server/room.go
 
 # Client
 

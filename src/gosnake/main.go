@@ -21,9 +21,9 @@ import (
 var (
 	debug     = flag.Bool("d", false, "enables the debug mode")
 	AppName   = "GoSnake"
-	chKeyCode = make(chan int32, 10) // 传递用户操作按键给 engine
-	chMode    = make(chan int32, 1)  // 传递 mode 信号给 engine
-	chExit    = make(chan bool)      // 传递退出信号给 engine
+	chKeyCode = make(chan int32, 10) // 传递用户操作按键给 bridge
+	chMode    = make(chan int32, 1)  // 传递 mode 信号给 bridge
+	chExit    = make(chan bool)      // 传递退出信号给 bridge
 	mainWin   *astilectron.Window
 )
 
@@ -67,12 +67,12 @@ func main() {
 		}},
 		OnWait: func(_ *astilectron.Astilectron, ws []*astilectron.Window, _ *astilectron.Menu, _ *astilectron.Tray, _ *astilectron.Menu) error {
 			mainWin = ws[0]
-			// Astilectron 已经 ready，启动 engine
-			go engine()
+			// Astilectron 已经 ready，启动 bridge
+			go bridge()
 			return nil
 		},
 		Adapter: func(a *astilectron.Astilectron) {
-			// Astilectron 已经结束，通知 engine 退出
+			// Astilectron 已经结束，通知 bridge 退出
 			a.On(astilectron.EventNameAppCrash, func(e astilectron.Event) (deleteListener bool) {
 				close(chExit)
 				return
@@ -89,7 +89,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 	// astilog.Debug("handleMessages:", m.Name, m.Payload)
 	switch m.Name {
 	case "start":
-		// 从 Astilectron 收到 start 通知，转给 engine
+		// 从 Astilectron 收到 start 通知，转给 bridge
 		mode, err := strconv.Atoi(string(m.Payload))
 		if err != nil || mode < 1 || mode > 3 {
 			break
@@ -97,7 +97,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 		chMode <- int32(mode)
 
 	case "keydown":
-		// 从 Astilectron 收到用户按键操作，转给 engine
+		// 从 Astilectron 收到用户按键操作，转给 bridge
 		kc, err := strconv.Atoi(string(m.Payload))
 		if err != nil {
 			break
@@ -107,7 +107,7 @@ func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload inter
 	return
 }
 
-// 专门接收 server 发来的 UDP，通过 chan 转发给 engine
+// 专门接收 server 发来的 UDP，通过 chan 转发给 bridge
 func readUDP(conn net.Conn, chDown chan *comm.Down) {
 	defer conn.Close()
 
@@ -129,7 +129,8 @@ func readUDP(conn net.Conn, chDown chan *comm.Down) {
 	}
 }
 
-func engine() {
+// 为 js 与 server 建立联系，双向转发消息
+func bridge() {
 	var serverConn net.Conn
 	chDown := make(chan *comm.Down, 10)
 
@@ -164,7 +165,7 @@ loop:
 			if serverConn == nil {
 				break
 			}
-			// 提交操作按键给服务器
+			// 提交操作按键给 server
 			up := &comm.Up{
 				M: &comm.Up_Op{
 					Op: &comm.Up_UpOp{
